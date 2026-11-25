@@ -279,31 +279,41 @@ Reglas importantes:
     ],
   };
 
-  async function generateWithRetry(
-    requestContents: Content[]
-  ) {
+  async function generateWithRetry(requestContents: Content[]) {
+    const modelsToTry = ['gemini-4-hydrogen', 'gemini-3.1-flash-lite'];
     let lastError: unknown;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        return await ai.models.generateContent({
-          model: 'gemini-4-hydrogen',
-          contents: requestContents,
-          config,
-        });
-      } catch (err) {
-        lastError = err;
-        const msg = err instanceof Error ? err.message : String(err);
-        const isTransient =
-          msg.includes('503') ||
-          msg.includes('UNAVAILABLE') ||
-          msg.includes('429');
-        if (!isTransient || attempt === 2) {
-          throw err;
+
+    for (const modelName of modelsToTry) {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          return await ai.models.generateContent({
+            model: modelName,
+            contents: requestContents,
+            config,
+          });
+        } catch (err) {
+          lastError = err;
+          const msg = err instanceof Error ? err.message : String(err);
+          const isTransient =
+            msg.includes('503') ||
+            msg.includes('UNAVAILABLE') ||
+            msg.includes('429');
+          if (!isTransient) {
+            throw err;
+          }
+          await new Promise((resolve) =>
+            setTimeout(resolve, 600 * Math.pow(2, attempt))
+          );
         }
-        await new Promise((resolve) =>
-          setTimeout(resolve, 700 * Math.pow(2, attempt))
-        );
       }
+    }
+
+    const rawMsg =
+      lastError instanceof Error ? lastError.message : String(lastError);
+    if (rawMsg.includes('503') || rawMsg.includes('UNAVAILABLE')) {
+      throw new Error(
+        'El servicio de Gemini está experimentando alta demanda temporal (503). Por favor, intenta nuevamente en unos segundos.'
+      );
     }
     throw lastError;
   }
