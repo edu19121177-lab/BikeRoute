@@ -1,0 +1,6 @@
+{
+  "name": "RuedaLibre",
+  "description": "Sistema web dinámico de tiendas de bicicletas, talleres de reparación y estaciones de servicio ciclista con mapa interactivo y asistente Gemini.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
